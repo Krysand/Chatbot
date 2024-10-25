@@ -135,30 +135,34 @@ def load_hospital_graph_from_csv() -> None:
         """
         _ = session.run(query, {})
     
-    LOGGER.info("Loading locations nodes")
+    LOGGER.info("Loading location nodes")
     with driver.session(database="neo4j") as session:
         query = f"""
-    LOAD CSV WITH HEADERS
-    FROM '{LOCATIONS_CSV_PATH}' AS locations
-    MERGE (l:Location {{
-        name: locations.name,
-        type: locations.type,
-        description: locations.description,
-        entrance_fee: locations.entrance_fee,
-        payment_options: locations.payment_options,
-        ticket_options: locations.ticket_options,
-        post_address: locations.post_address,
-        address: locations.address,
-        opening_hours: locations.opening_hours,
-        fax_number: locations.fax_number,
-        contact_info: locations.contact_info,
-        contact_info_opening_hours: locations.contact_info_opening_hours,
-        website_url: locations.website_url,
-        accessibility: locations.accessibility,
-        parking_info: locations.parking_info
-    }});
-    """
-    _ = session.run(query, {})
+        LOAD CSV WITH HEADERS
+        FROM '{LOCATIONS_CSV_PATH}' AS locations
+        MERGE (l:Location {{
+            name: locations.name,
+            type: locations.type,
+            description: locations.description,
+            entrance_fee: locations.entrance_fee,
+            payment_options: locations.payment_options,
+            ticket_options: locations.ticket_options,
+            post_address: locations.post_address,
+            address: locations.address,
+            opening_hours: locations.opening_hours,
+            fax_number: locations.fax_number,
+            contact_info: locations.contact_info,
+            contact_info_opening_hours: locations.contact_info_opening_hours,
+            website_url: locations.website_url,
+            accessibility: locations.accessibility,
+            parking_info: locations.parking_info
+        }});
+        """
+        try:
+            with session.begin_transaction() as tx:
+                _ = tx.run(query, {})
+        except Exception as e:
+            LOGGER.error(f"An error occurred while loading location nodes: {e}")
 
 
     LOGGER.info("Loading 'AT' relationships")
