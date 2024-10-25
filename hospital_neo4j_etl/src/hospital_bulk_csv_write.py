@@ -10,6 +10,7 @@ PHYSICIANS_CSV_PATH = os.getenv("PHYSICIANS_CSV_PATH")
 PATIENTS_CSV_PATH = os.getenv("PATIENTS_CSV_PATH")
 VISITS_CSV_PATH = os.getenv("VISITS_CSV_PATH")
 REVIEWS_CSV_PATH = os.getenv("REVIEWS_CSV_PATH")
+LOCATIONS_CSV_PATH = os.getenv("LOCATIONS_CSV_PATH")
 
 # Neo4j config
 NEO4J_URI = os.getenv("NEO4J_URI")
@@ -133,6 +134,31 @@ def load_hospital_graph_from_csv() -> None:
                         }});
         """
         _ = session.run(query, {})
+    
+    LOGGER.info("Loading locations nodes")
+    with driver.session(database="neo4j") as session:
+        query = f"""
+    LOAD CSV WITH HEADERS
+    FROM '{LOCATIONS_CSV_PATH}' AS locations
+    MERGE (l:Location {{
+        name: locations.name,
+        type: locations.type,
+        description: locations.description,
+        entrance_fee: locations.entrance_fee,
+        payment_options: locations.payment_options,
+        ticket_options: locations.ticket_options,
+        post_address: locations.post_address,
+        address: locations.address,
+        opening_hours: locations.opening_hours,
+        fax_number: locations.fax_number,
+        contact_info: locations.contact_info,
+        contact_info_opening_hours: locations.contact_info_opening_hours,
+        website_url: locations.website_url,
+        accessibility: locations.accessibility,
+        parking_info: locations.parking_info
+    }});
+    """
+    _ = session.run(query, {})
 
 
     LOGGER.info("Loading 'AT' relationships")
@@ -199,6 +225,46 @@ def load_hospital_graph_from_csv() -> None:
         """
         _ = session.run(query, {})
 
+@retry(tries=100, delay=10)
+def     load_bmwwelt_graph_from_csv() -> None:
+    """Load structured BMW Welt CSV data following
+    a specific ontology into Neo4j"""
+
+    driver = GraphDatabase.driver(NEO4J_URI, auth=(NEO4J_USERNAME, NEO4J_PASSWORD))
+
+    LOGGER.info("Setting uniqueness constraints on nodes")
+    with driver.session(database="neo4j") as session:
+        for node in NODES:
+            session.execute_write(_set_uniqueness_constraints, node)
+
+    LOGGER.info("Loading locations nodes")
+    with driver.session(database="neo4j") as session:
+        query = f"""
+    LOAD CSV WITH HEADERS
+    FROM '{LOCATIONS_CSV_PATH}' AS locations
+    MERGE (l:Location {{
+        name: locations.name,
+        type: locations.type,
+        description: locations.description,
+        entrance_fee: locations.entrance_fee,
+        payment_options: locations.payment_options,
+        ticket_options: locations.ticket_options,
+        post_address: locations.post_address,
+        address: locations.address,
+        opening_hours: locations.opening_hours,
+        fax_number: locations.fax_number,
+        contact_info: locations.contact_info,
+        contact_info_opening_hours: locations.contact_info_opening_hours,
+        website_url: locations.website_url,
+        accessibility: locations.accessibility,
+        parking_info: locations.parking_info
+    }});
+    """
+    _ = session.run(query, {})
+
+    
+
 
 if __name__ == "__main__":
     load_hospital_graph_from_csv()
+    load_bmwwelt_graph_from_csv()
